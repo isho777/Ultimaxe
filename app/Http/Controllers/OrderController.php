@@ -7,13 +7,74 @@ use Illuminate\Http\Request;
 use App\Order;
 use App\OrderItem;
 use App\Stockmovements;
+use Auth;
+use DateTime;
+
 
 class OrderController extends Controller
 {
-    //
+    
     public function getallorders(){
         return view("quotes.index",["quotes"=>Order::all()]);
     }
+	
+	public function getallorders_api(){
+        if (!Auth::check()) {
+			return "Please log in.";					
+		}      	   
+		
+        $orders = Order::all();
+        if(count($orders) > 0){
+            return Response()->json(['result'=>'0',
+                                     'orders'=>$orders]);
+        }else{
+            return Response()->json(['result'=>'-1', 'message'=>'No orders found.']);
+        }
+    }
+	
+	public function getorderbyid(Request $request){
+     if (!Auth::check()) {
+			return "Please log in";		
+		}
+        	
+		$result =  Order::where('id',$request->id)->first();
+        return $result;
+    }
+	
+	public function getorderbymultiple (Request $request){
+     if (!Auth::check()) {
+			return "Please log in";
+		}
+        
+		$creationstartdate="";
+		$creationenddate="";
+		if ( empty($request->creationstartdate) or is_null($request->creationstartdate)) {
+			$creationstartdate= "1970-01-01 00:00:00";
+			}else{
+				 $creationstartdate= $request->creationstartdate;
+			}
+		if ( empty($request->creationenddate) or is_null($request->creationenddate)) {
+			$creationenddate= "2099-12-31 00:00:00";
+		}else{
+			$creationenddate= $request->creationenddate;
+		}			
+		
+		$result1 = Order::where([
+		                       ['id', 'LIKE' , '%'.$request->id.'%'], 
+		                       ['cust_order_number', 'LIKE' , '%'.$request->cust_order_number.'%'],							   
+							   ['customer_name',  'LIKE' , '%'.$request->customer_name.'%'], 
+							   ['sales_person',  'LIKE' , '%'.$request->sales_person.'%'], 
+							   ['livesheetnumber',  'LIKE' , '%'.$request->livesheetnumber.'%'], 
+							   ['email',  'LIKE' , '%'.$request->email.'%'],
+							   ['phone',  'LIKE' , '%'.$request->phone.'%'] ])							 
+							   ->get();   					 
+							   
+		$result2 = Order::whereBetween('created_at', [date($creationstartdate), date($creationenddate)])->get();
+			
+		return $result1->intersect($result2)->all();
+			
+    }
+	
 
     public function getspecificorders($id){
         $order = Order::where('id',$id)->first();

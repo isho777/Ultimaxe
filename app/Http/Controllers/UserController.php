@@ -52,7 +52,7 @@ class UserController extends Controller
     }
 	
     public function getallusers(){		
-        $allusers = [];
+        $resultinfo = [];
         foreach(User::all() as $user){
             $userole = '';
             $userepartment = '';
@@ -65,7 +65,7 @@ class UserController extends Controller
             if($department->count() > 0){
                 $userepartment = $department[0]->name;
             }
-                array_push($allusers,[ 
+                array_push($resultinfo,[ 
                     'id'=>$user->id,
                     'role'=>$userole,
                     'email' =>$user->email ,
@@ -75,15 +75,15 @@ class UserController extends Controller
                     'department'=>$userepartment,
                     ]);
         }
-        return $allusers;
+        return $resultinfo;
     }
 	
-	public function getallusers_api(){			    
-		if (!Auth::check()) { //if session expired
-			return "Session Expired. Please log in." ;					
+	public function getallusers_api(){		
+		if (!Auth::check()) {
+			return "Please log in.";					
 		}
-						
-        $allusers = [];
+					
+        $resultinfo = [];
         foreach(User::all() as $user){
             $userole = '';
             $userepartment = '';
@@ -96,7 +96,7 @@ class UserController extends Controller
             if($department->count() > 0){
                 $userepartment = $department[0]->name;
             }
-                array_push($allusers,[ 
+                array_push($resultinfo,[ 
                     'id'=>$user->id,
                     'role'=>$userole,
                     'email' =>$user->email ,
@@ -106,7 +106,7 @@ class UserController extends Controller
                     'department'=>$userepartment,
                     ]);
         }
-        return $allusers;
+        return $resultinfo;
     }
 	
 	
@@ -131,8 +131,34 @@ class UserController extends Controller
 		//return $request->user(); 
 		return auth('api')->user()->user_id;
     }
+	
+	public function getcurrentuser_api(){
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
+		
+        $user = Auth::user();
+		return $user;
+    }
+	
+    public function getuserbyid_api($id){
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
+        $user = User::where('id',$id)->firstOrFail();
+        return $user;
+    }
+	
+	 public function getuserbyemail_api($email){
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
+        $user = User::where('email',$email)->firstOrFail();
+        return $user;
+    }
     
       public function updateuserinfo(Request $request){
+     		  
         $user = User::find($request->id);              
         $user->name = $request->name;
         $user->lastname = $request->lastname;
@@ -154,29 +180,34 @@ class UserController extends Controller
     }
 	
 	public function updateuserinfo_api(Request $request){
-	    $userinfo = [];	
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
+		
+	    $resultinfo = [];	
         $user = User::find($request->id);              
         $user->name = $request->name;
         $user->lastname = $request->lastname;
 
         if($user->save()){
        
-			array_push($userinfo,[ 
+			array_push($resultinfo,[ 
                  'sucess' => 'System user is successfully updated.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
                 'departments'=>Department::all()]);			
         }else{
        
-			array_push($userinfo,[ 
+			array_push($resultinfo,[ 
                 'error' => 'There was an error while updating the system user.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
                 'departments'=>Department::all()]);			
         }
-      return $userinfo;
+      return $resultinfo;
     }
     public function updateuserrole(Request $request){
+		
         $user = User::find($request->id);
        
         
@@ -198,15 +229,18 @@ class UserController extends Controller
       
     }
 	
-	    public function updateuserrole_api(Request $request){
-		$userinfo = [];	
+	public function updateuserrole_api(Request $request){
+	    if (!Auth::check()) {
+			return "Please log in";					
+		}
+		$resultinfo = [];	
         $user = User::find($request->id);
                
         $user->role = $request->role;
 
         if($user->save()){         
 				
-		array_push($userinfo,[ 
+		array_push($resultinfo,[ 
                  'sucess' => 'System user role is successfully updated.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
@@ -214,13 +248,13 @@ class UserController extends Controller
         }else{
          
 				
-				   array_push($userinfo,[ 
+				   array_push($resultinfo,[ 
                      'error' => 'There was an error while updating user role.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
                 'departments'=>Department::all()]);
         }
-      return $userinfo;
+      return $resultinfo;
     }
     
     public function updateuserdepartment(Request $request){
@@ -244,6 +278,9 @@ class UserController extends Controller
     }
 	
 	public function updateuserdepartment_api(Request $request){
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
 		$userinfo = [];	
         $user = User::find($request->id);       
         $user->department = $request->department;
@@ -300,8 +337,11 @@ class UserController extends Controller
 
     }
 	
-	 public function newuser_api(Request $request){  //save new user
-		$userinfo = [];	
+	 public function registeruser_api(Request $request){  //save new user
+	    if (!Auth::check()) {
+			return "Please log in";					
+		}
+		$resultinfo = [];	
         if(User::where(['email'=>$request->email])->count() == 0){
             $user = new User();
             $user->role = '0';
@@ -312,32 +352,24 @@ class UserController extends Controller
             $user->remember_token = '';
             $user->password = bcrypt($request->password);
 
-            if($user->save()){
-              
-		array_push($userinfo,[ 
-                      'sucess' => 'System user is successfully created.',
-                    'users'=>$this->getallusers(),
-                    'role'=>Role::all(),
-                    'departments'=>Department::all()]);				
+            if($user->save()){             		
+				//$saveduser = User::where('email',$request->email)->get();				
+				 
+			    $resultinfo = [ 'result' => '0', 
+				               'message' => 'System user is successfully created:'.$request->email ,
+							   'user' => $user];
+				           							
             }else{
-               
-				array_push($userinfo,[ 
-                    'error' => 'There was an error while creating system user. Please try again.',
-                    'users'=>$this->getallusers(),
-                    'role'=>Role::all(),
-                    'departments'=>Department::all(),
-                    'newuser'=>'']);					
+               	$resultinfo = [ 'result' => '-1', 
+					          'message' => 'There was an error while creating system user. Please try again.' ];					
+                  			
             }
         }else{
-        
-		array_push($userinfo,[ 
-                'error' => 'The user email already exists. Please use another email.',
-                'users'=>$this->getallusers(),
-                'role'=>Role::all(),
-                'departments'=>Department::all(),
-                'newuser'=>'']);			
+			
+			$resultinfo = [ 'result' => '-1', 
+					      'message' => 'The user email already exists:'.$request->email ];	
         }
-		return $userinfo;
+		return json_encode( $resultinfo ); 
     }
 
     public function updateuserstatus($id,$status){		
@@ -364,7 +396,12 @@ class UserController extends Controller
     }
 	
     public function updateuserstatus_api(Request $request){
-		$userinfo = [];	
+		
+		if (!Auth::check()) {
+			return "Please log in";					
+		}
+		
+		$resultinfo = [];	
         $user = User::find($request->id);
         $status = $request->status;		
         if($status == 0){
@@ -375,20 +412,20 @@ class UserController extends Controller
         $user->status = $status;
         if($user->save()){
             
-				array_push($userinfo,[ 
+				array_push($resultinfo,[ 
                  'sucess' => 'System user status is successfully updated.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
                 'departments'=>Department::all()]);
         }else{
            
-				array_push($userinfo,[ 
+				array_push($resultinfo,[ 
                 'error' => 'There was an error while updating the system user status.',
                 'users'=>$this->getallusers(),
                 'role'=>Role::all(),
                 'departments'=>Department::all()]);
         }
-      return $userinfo;
+      return $resultinfo;
     }
 	
 	public function testLoginSession(Request $request){
@@ -403,4 +440,6 @@ class UserController extends Controller
 		}
 			
 	}
+	
+
 }

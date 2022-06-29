@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Support\Facades\Auth;
 
+
 class LoginController extends Controller
 {
   /**
@@ -14,8 +15,14 @@ class LoginController extends Controller
      * 
      * @return Renderable
      */
+	use AuthenticatesUsers;
+	  
+	protected $redirectTo = '/home';
+
+	 
     public function show()
     {
+				
         return view('auth.login');
     }
 
@@ -26,28 +33,11 @@ class LoginController extends Controller
      * 
      * @return \Illuminate\Http\Response
      */
-    public function login(Request $request)
+    public function login_api(Request $request)
     {
-		/*
-        $credentials = $request->getCredentials();
-
-        if(!Auth::validate($credentials)):
-		return json("Not...");
-            //return redirect()->to('login')
-            //    ->withErrors(trans('auth.failed'));
-        endif;
-
-        $user = Auth::getProvider()->retrieveByCredentials($credentials);
-
-        Auth::login($user);
-
-        return json("login...");//$this->authenticated($request, $user);
-		*/
-		
-		 if (Auth::attempt(array('email' => $request->email, 'password' => $request->password))){
+						
+		if (Auth::attempt(array('email' => $request->email, 'password' => $request->password))){
 			 
-md5(rand());
-
 			 $request->session()->put('sessionKey',hash("sha256", rand()));
 			 $sessionKey = $request->session()->get('sessionKey');			 
             return "Login success. session key=".$sessionKey ;
@@ -68,6 +58,12 @@ md5(rand());
      */
     protected function authenticated(Request $request, $user) 
     {
+		
         return redirect()->intended();
+    }
+	
+	public function __construct()
+    {		
+        $this->middleware('guest')->except('logout');
     }
 }

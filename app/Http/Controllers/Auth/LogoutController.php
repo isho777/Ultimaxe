@@ -18,7 +18,7 @@ class LogoutController extends Controller
      *
      * @return \Illuminate\Routing\Redirector
      */
-    public function logout(Request $request)
+    public function logout_api(Request $request)
     {
         Session::flush();
         
